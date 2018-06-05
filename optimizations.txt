@@ -1,0 +1,48 @@
+1. Make NIC buffer large (4096 bytes)
+2. Turn off offloading:
+	tcp_segmentation offloading (TSO)
+	udp_fragmentation offloading (UFO)
+	generic segmentation (GSO)
+	and generic receive offloading (GRO)
+
+3. Turn off Bro checksum processing
+4. Minimal logging + analysis in Bro
+
+For 2 and 3 details see BEA-Work/bea-2018-5-25-GRO-checksum-optimizations-for-Bro.txt
+
+To do 1,2:
+
+put:
+'''
+#!/bin/bash
+case "$1" in
+em1)
+echo "Configuring em1"
+ethtool -G em1 rx 4096 tx 4096
+ethtool --offload em1 rx off tx off tso off gso off
+/sbin/ip link set em1 promisc on
+;;
+em2)
+echo "Configuring em2"
+ethtool -G em2 rx 4096 tx 4096
+ethtool --offload em2 rx off tx off tso off gso off
+/sbin/ip link set em2 promisc on
+;;
+
+'''
+in `sbin/ifup-local`
+
+To do 3, put:
+'''
+redef ignore_checksums = T; 
+'''
+in `local.bro
+
+
+To do 4:
+put disable-analyzer-log.bro in bro/share/bro/policy/misc/
+and put
+'''
+@load misc/disable-analyzer-log.bro
+'''
+in `local.bro`
